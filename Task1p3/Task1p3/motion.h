@@ -19,4 +19,5 @@ mvector
 find_motion(my_image_comp* ref, my_image_comp* tgt,
     int start_row, int start_col, int block_width, int block_height, int S);
 void draw_vector(my_image_comp* tgt, int y_start, int x_start, int y_end, int x_end, int n);
+void draw_vector_(my_image_comp* img, int start_row, int start_col, int vec_y, int vec_x, int color_plane);
 #endif // MOTION_H

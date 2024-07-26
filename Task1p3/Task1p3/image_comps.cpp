@@ -1162,7 +1162,9 @@ void Image_copy_no_offset(my_image_comp* input_comps, my_image_comp* output_comp
         {
             int* a = (input_comps)->buf_ + (r) * (input_comps)->stride + (c);
             int* output = (output_comps)->buf_ + (r) * (output_comps)->stride + (c);
-            *output = *a;
+            *output =((*a>>1) + 128);
+            CLAMP_TO_BYTE(*output);
+            //*output = *a;
         }
     }
 

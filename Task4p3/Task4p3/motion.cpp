@@ -63,8 +63,8 @@ find_motion(my_image_comp* ref, my_image_comp* tgt,
     float N = (float)block_height * (float)block_width;
     mvector vec, best_vec;//vec就是运动矢量
     int mse, best_mse = 256 * block_width * block_height;
-    for (vec.y = -S; vec.y <= S; vec.y +=0.5)
-        for (vec.x = -S; vec.x <= S; vec.x +=0.5)
+    for (vec.y = -S; vec.y <= S; vec.y +=0.25)
+        for (vec.x = -S; vec.x <= S; vec.x +=0.25)
         {
 
             float ref_row = (float)start_row - vec.y;
