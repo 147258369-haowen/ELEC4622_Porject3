@@ -10,7 +10,7 @@
 struct my_image_comp;
 struct mvector {
     mvector() { x = y = 0; }
-    int x, y;
+    float x, y;
 };
 void
 motion_comp(my_image_comp* ref, my_image_comp* tgt, mvector vec,
