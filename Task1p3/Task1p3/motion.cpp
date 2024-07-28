@@ -24,7 +24,7 @@ motion_comp(my_image_comp* ref, my_image_comp* tgt, mvector vec,
         rp += ref->stride, tp += tgt->stride)
         for (c = 0; c < block_width; c++) {
             tp[c] = ((rp[c] >> 1) + 128);
-            CLAMP_TO_BYTE_(tp[c]);
+            //CLAMP_TO_BYTE_(tp[c]);
         }
            
 
@@ -234,4 +234,18 @@ void draw_vector_(my_image_comp* img, int start_row, int start_col, int vec_y, i
             }
         }
     }
+}
+void Calculate_mse(my_image_comp* tgt, my_image_comp* out) {
+    float sum = 0;
+    float temp = 0;
+    for (int r = 0; r < tgt->height; r++) {
+        for (int c = 0; c < tgt->width; c++) {
+            int* tg = tgt->buf_ + r * tgt->stride + c;
+            int* ref = out->buf_ + r * out->stride + c;
+            temp = (*tg - ((*ref-128)*2));
+            sum += temp * temp;
+        }
+    }
+    float mse = sum / (tgt->height * tgt->width);
+    printf("Total MSE : %f\n", mse);
 }

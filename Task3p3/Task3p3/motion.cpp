@@ -8,6 +8,44 @@ static int global_mse = 0;
 int get_global_mse() {
     return global_mse;
 }
+float bilinear_interpolate(int* image, int width, int height, float x, float y, int stride) {
+    int x1 = (int)x;
+    int y1 = (int)y;
+    int x2 = x1 + 1;
+    int y2 = y1 + 1;
+
+    if (x2 >= width) x2 = width - 1;
+    if (y2 >= height) y2 = height - 1;
+
+    float R1 = (x2 - x) * image[y1 * stride + x1] + (x - x1) * image[y1 * stride + x2];
+    float R2 = (x2 - x) * image[y2 * stride + x1] + (x - x1) * image[y2 * stride + x2];
+    float P = (y2 - y) * R1 + (y - y1) * R2;
+
+    return P;
+}
+void
+motion_comp_float(my_image_comp* ref, my_image_comp* tgt, mvector vec,
+    int start_row, int start_col, int block_width, int block_height)
+    /* This function transfers data from the `ref' frame to a block within the
+       `tgt' frame, thereby realizing motion compensation.  The motion in
+       question has already been found by `find_motion' and is captured by
+       the `vec' argument.  The block in the `tgt' frame commences
+       at the coordinates given by `start_row' and `start_col' and extends
+       for `block_width' columns and `block_height' rows. */
+{
+    int r, c;
+    float ref_row = start_row - vec.y;
+    float ref_col = start_col - vec.x;
+    //int* rp = ref->buf_ + ref_row * ref->stride + ref_col;
+    int* tp = tgt->buf_ + start_row * tgt->stride + start_col;
+    for ( r = 0; r < block_height; r++,
+        tp += tgt->stride)
+        for (c = 0; c < block_width; c++) {
+            float  rvalue = bilinear_interpolate(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
+            tp[c] = ((rvalue/2.0) + 128);
+        }   
+}
+            
 void
 motion_comp(my_image_comp* ref, my_image_comp* tgt, mvector vec,
     int start_row, int start_col, int block_width, int block_height)
@@ -25,23 +63,10 @@ motion_comp(my_image_comp* ref, my_image_comp* tgt, mvector vec,
     int* tp = tgt->buf_ + start_row * tgt->stride + start_col;
     for (r = block_height; r > 0; r--,
         rp += ref->stride, tp += tgt->stride)
-        for (c = 0; c < block_width; c++)
+        for (c = 0; c < block_width; c++) {
             tp[c] = ((rp[c] >> 1) + 128);
-}
-float bilinear_interpolate(int* image, int width, int height, float x, float y, int stride) {
-    int x1 = (int)x;
-    int y1 = (int)y;
-    int x2 = x1 + 1;
-    int y2 = y1 + 1;
-
-    if (x2 >= width) x2 = width - 1;
-    if (y2 >= height) y2 = height - 1;
-
-    float R1 = (x2 - x) * image[y1 * stride + x1] + (x - x1) * image[y1 * stride + x2];
-    float R2 = (x2 - x) * image[y2 * stride + x1] + (x - x1) * image[y2 * stride + x2];
-    float P = (y2 - y) * R1 + (y - y1) * R2;
-
-    return P;
+            //CLAMP_TO_BYTE_(tp[c]);
+        }
 }
 
 
@@ -83,8 +108,7 @@ find_motion(my_image_comp* ref, my_image_comp* tgt,
                 for (c = 0; c < block_width; c++)
                 {
                     float  rvalue = bilinear_interpolate(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
-                    int diff = (tp[c] - rvalue)* (tp[c] - rvalue);
-                   
+                    int diff = (tp[c] - rvalue)* (tp[c] - rvalue);              
                     mse += diff;
                 }
             mse = (1.0 / N) * mse;
@@ -97,7 +121,7 @@ find_motion(my_image_comp* ref, my_image_comp* tgt,
             }
         }
     global_mse += best_mse;
-    printf("%d\r\n", best_mse);
+    //printf("%d\r\n", best_mse);
     return best_vec;
 }
 
@@ -115,4 +139,18 @@ void draw_vector(my_image_comp* tgt, int y_start, int x_start, int y_end, int x_
         if (e2 > -dy) { err -= dy; x_start += sx; }
         if (e2 < dx) { err += dx; y_start += sy; }
     }
+}
+void Calculate_mse(my_image_comp* tgt, my_image_comp* out) {
+    float sum = 0;
+    float temp = 0;
+    for (int r = 0; r < tgt->height; r++) {
+        for (int c = 0; c < tgt->width; c++) {
+            int* tg = tgt->buf_ + r * tgt->stride + c;
+            int* ref = out->buf_ + r * out->stride + c;
+            temp = (*tg - ((*ref - 128) * 2));
+            sum += temp * temp;
+        }
+    }
+    float mse = sum / (tgt->height * tgt->width);
+    printf("Total MSE : %f\n", mse);
 }

@@ -55,14 +55,14 @@ int main(int argc, char* argv[]) {
             int nominal_block_width = imageParam.B;
             int nominal_block_height = imageParam.B;
             int mid;
-            if (imageParam.B % 2 == 0) { mid = imageParam.B >> 2; } else { mid = (imageParam.B + 1) >> 2; }
+            if (imageParam.B % 2 == 0) { mid = imageParam.B >> 1; } else { mid = (imageParam.B + 1) >> 1; }
             int block_width, block_height;
             int height = imageParam.height;
             int width = imageParam.width;
             int S = imageParam.S;
-            Image_copy_no_offset(input_comps, &output_comps[0], &imageParam);
-            Image_copy_no_offset(input_comps, &(output_comps[1]), &imageParam);
-            Image_copy_no_offset(input_comps, &(output_comps[2]), &imageParam);
+            Image_copy_no_offset(input_comps2, &output_comps[0], &imageParam);
+            Image_copy_no_offset(input_comps2, &(output_comps[1]), &imageParam);
+            Image_copy_no_offset(input_comps2, &(output_comps[2]), &imageParam);
             for (int n = 0; n < imageParam.num_comp; n++) {
                 for (int r = 0; r < height; r += block_height)//height is the image hight
                 {
@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
                     }
                 }
             }
-           
+            Calculate_mse(&input_comps2[0], &output_comps[0]);
             state = OUTPUT_PICTURE;
         } 
         

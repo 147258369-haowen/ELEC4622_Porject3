@@ -993,8 +993,8 @@ void Image_upsample(my_image_comp** input_comps, my_image_comp** output_comps, I
     int new_width = 2 * old_width;
 
     for (int n = 0; n < imageParam->num_comp; n++) {
-        (*output_comps)[n].init(new_height, new_width, 64);
-        (*output_comps)[n].perform_boundary_extension();
+        (*output_comps)[n].init(new_height, new_width, 4);
+       // (*output_comps)[n].perform_boundary_extension();
     }
 
     for (int n = 0; n < imageParam->num_comp; n++) {
@@ -1011,10 +1011,10 @@ void Image_upsample(my_image_comp** input_comps, my_image_comp** output_comps, I
                 float y_ratio = (float)(r % 2) / 2.0;
 
                 // Get the values of the four surrounding pixels
-                float* a = (*input_comps)[n].buf + y * (*input_comps)[n].stride + x;
-                float* b = (*input_comps)[n].buf + y * (*input_comps)[n].stride + x1;
-                float* c1 = (*input_comps)[n].buf + y1 * (*input_comps)[n].stride + x;
-                float* d = (*input_comps)[n].buf + y1 * (*input_comps)[n].stride + x1;
+                int* a = (*input_comps)[n].buf_ + y * (*input_comps)[n].stride + x;
+                int* b = (*input_comps)[n].buf_ + y * (*input_comps)[n].stride + x1;
+                int* c1 = (*input_comps)[n].buf_ + y1 * (*input_comps)[n].stride + x;
+                int* d = (*input_comps)[n].buf_ + y1 * (*input_comps)[n].stride + x1;
 
                 // Perform bilinear interpolation
                 float value = (1 - x_ratio) * (1 - y_ratio) * (*a) +
@@ -1023,16 +1023,12 @@ void Image_upsample(my_image_comp** input_comps, my_image_comp** output_comps, I
                     x_ratio * y_ratio * (*d);
 
                 // Assign the interpolated value to the output
-                float* output = (*output_comps)[n].buf + r * (*output_comps)[n].stride + c;
+                int* output = (*output_comps)[n].buf_ + r * (*output_comps)[n].stride + c;
                 *output = value;
             }
         }
     }
 
-    /*   imageParam->height = new_height;
-       imageParam->width = new_width;*/
-       /*  imageParam->initheight = new_height;
-         imageParam->initwidth = new_width;*/
 }
 void Laplacian_difference(my_image_comp** input_comps, my_image_comp** output_comps, ImageParam* imageParam) {
     int old_height = imageParam->height;
@@ -1162,9 +1158,7 @@ void Image_copy_no_offset(my_image_comp* input_comps, my_image_comp* output_comp
         {
             int* a = (input_comps)->buf_ + (r) * (input_comps)->stride + (c);
             int* output = (output_comps)->buf_ + (r) * (output_comps)->stride + (c);
-            *output =((*a>>1) + 128);
-            //CLAMP_TO_BYTE(*output);
-            //*output = *a;
+            *output = ((*a >> 1) + 128);
         }
     }
 

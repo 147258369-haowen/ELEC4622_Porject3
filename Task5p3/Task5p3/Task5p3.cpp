@@ -39,6 +39,9 @@ int main(int argc, char* argv[]) {
     int tempheight = 0;
     bool change_picture = false;
     int first_width,first_height,first_initHeight;
+    clock_t start, end;
+    double cpu_time_used;
+    start = clock();
     while (true) {
         switch (state) {
         case CHECK_INPUT:
@@ -61,9 +64,11 @@ int main(int argc, char* argv[]) {
             int mid;
             if (imageParam.B % 2 == 0) { mid = imageParam.B >> 1; }
             else { mid = (imageParam.B + 1) >> 1; }
+            my_image_comp* input_upsample = new  my_image_comp[imageParam.num_comp];
             Image_copy_no_offset(input_comps2, output_comps, &imageParam);
             Image_copy_no_offset(input_comps2, output_comps+1, &imageParam);
             Image_copy_no_offset(input_comps2, output_comps + 2, &imageParam);
+            //Image_upsample(&input_comps, &input_upsample, &imageParam);
             for (int n = 0; n < imageParam.num_comp; n++) {
                 for (int r = 0; r < height; r += block_height)//height is the image hight
                 {
@@ -75,13 +80,10 @@ int main(int argc, char* argv[]) {
                         block_width = nominal_block_width;
                         if ((c + block_width) > width)
                             block_width = width - c;
-                        mvector vec = find_motion(input_comps+n, input_comps2 + n,
+                        mvector vec = find_motion(input_comps +n, input_comps2 + n,//input_comps reference frame
                             r, c, block_width, block_height, S);
-                        motion_comp(input_comps + n, output_comps + n, vec,
+                        motion_comp_float(input_comps + n, output_comps + n, vec,
                             r, c, block_width, block_height);
-                      /*  int x_end = c - vec.x;
-                        int y_end = r - vec.y;
-                        draw_vector(output_comps + n,r,c, y_end, x_end,n);*/
                         int y_start = r + mid;
                         int x_start = c + mid;
                         int x_end = x_start - vec.x;
@@ -89,11 +91,16 @@ int main(int argc, char* argv[]) {
 
                         //draw_vector_(&output_comps[1], y_start, x_start, vec.y, vec.x, n);
                         draw_vector(&output_comps[1], y_start, x_start, y_end, x_end, n);
+                        //draw_vectors2(&output_comps[1], vec, y_start, x_start, nominal_block_width, nominal_block_width);
+
                     }
                 }
             }
             //printf("total mse %d\r\n", get_global_mse());
             Calculate_mse(&input_comps2[0], &output_comps[0]);
+            end = clock();
+            cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+            printf("Run time: %f second\n", cpu_time_used);
             state = OUTPUT_PICTURE;
         } 
         

@@ -3,25 +3,13 @@
 #include "image_comps.h"
 #include <math.h>
 #include "motion.h"
+#include <omp.h>
+#include <cmath>
+#include <limits>
 static int global_mse = 0;
 
 int get_global_mse() {
     return global_mse;
-}
-float bilinear_interpolate(int* image, int width, int height, float x, float y, int stride) {
-    int x1 = (int)x;
-    int y1 = (int)y;
-    int x2 = x1 + 1;
-    int y2 = y1 + 1;
-
-    if (x2 >= width) x2 = width - 1;
-    if (y2 >= height) y2 = height - 1;
-
-    float R1 = (x2 - x) * image[y1 * stride + x1] + (x - x1) * image[y1 * stride + x2];
-    float R2 = (x2 - x) * image[y2 * stride + x1] + (x - x1) * image[y2 * stride + x2];
-    float P = (y2 - y) * R1 + (y - y1) * R2;
-
-    return P;
 }
 void
 motion_comp(my_image_comp* ref, my_image_comp* tgt, mvector vec,
@@ -43,6 +31,21 @@ motion_comp(my_image_comp* ref, my_image_comp* tgt, mvector vec,
         for (c = 0; c < block_width; c++)
             tp[c] = ((rp[c] >> 1) + 128);
 }
+float bilinear_interpolate(int* image, int width, int height, float x, float y, int stride) {
+    int x1 = (int)x;
+    int y1 = (int)y;
+    int x2 = x1 + 1;
+    int y2 = y1 + 1;
+
+    if (x2 >= width) x2 = width - 1;
+    if (y2 >= height) y2 = height - 1;
+
+    float R1 = (x2 - x) * image[y1 * stride + x1] + (x - x1) * image[y1 * stride + x2];
+    float R2 = (x2 - x) * image[y2 * stride + x1] + (x - x1) * image[y2 * stride + x2];
+    float P = (y2 - y) * R1 + (y - y1) * R2;
+
+    return P;
+}
 void
 motion_comp_float(my_image_comp* ref, my_image_comp* tgt, mvector vec,
     int start_row, int start_col, int block_width, int block_height)
@@ -56,17 +59,16 @@ motion_comp_float(my_image_comp* ref, my_image_comp* tgt, mvector vec,
     int r, c;
     float ref_row = start_row - vec.y;
     float ref_col = start_col - vec.x;
+    Filter sinc(7, 7);
     //int* rp = ref->buf_ + ref_row * ref->stride + ref_col;
     int* tp = tgt->buf_ + start_row * tgt->stride + start_col;
     for (r = 0; r < block_height; r++,
         tp += tgt->stride)
         for (c = 0; c < block_width; c++) {
-            float  rvalue = bilinear_interpolate(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
+            float  rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
             tp[c] = ((rvalue / 2.0) + 128);
         }
 }
-
-
 
 /*****************************************************************************/
 
@@ -85,11 +87,11 @@ find_motion(my_image_comp* ref, my_image_comp* tgt,
 {
     float N = (float)block_height * (float)block_width;
     mvector vec, best_vec;//vec就是运动矢量
-    int mse, best_mse = 256 * block_width * block_height;
+    float mse, best_mse = 256 * block_width * block_height;
+    Filter sinc(7,7);
     for (vec.y = -S; vec.y <= S; vec.y +=0.25)
         for (vec.x = -S; vec.x <= S; vec.x +=0.25)
         {
-
             float ref_row = (float)start_row - vec.y;
             float ref_col = (float)start_col - vec.x;
            // float rvalue = bilinear_interpolate(ref->buf_, ref->width, ref->height, ref_row, ref_col, ref->stride);
@@ -105,13 +107,14 @@ find_motion(my_image_comp* ref, my_image_comp* tgt,
                  tp += tgt->stride)//换行 rp += 2 * ref->stride,
                 for (c = 0; c < block_width; c++)
                 {
-                    float  rvalue = bilinear_interpolate(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
-                    int diff = (tp[c] - rvalue)* (tp[c] - rvalue);
+                    //float  rvalue = bilinear_interpolate(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
+                    float rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
+                    float diff = (tp[c] - rvalue)* (tp[c] - rvalue);
                    
                     mse += diff;
                 }
             mse = (1.0 / N) * mse;
-           // printf("count:%d\r\n", count);
+            //printf("count:%d\r\n", count);
             if (mse < best_mse)
             {
                 best_mse = mse;
@@ -123,7 +126,78 @@ find_motion(my_image_comp* ref, my_image_comp* tgt,
     //printf("%d\r\n", best_mse);
     return best_vec;
 }
+mvector find_motion_paralell(my_image_comp* ref, my_image_comp* tgt,
+    int start_row, int start_col, int block_width, int block_height, int S)
+{
+    float N = (float)block_height * (float)block_width;
+    mvector best_vec;
+    float best_mse = std::numeric_limits<float>::max();
+    Filter sinc(7, 7);
 
+    // Create variables to store results of parallel computation
+    float global_best_mse = best_mse;
+    mvector global_best_vec;
+
+    // Set the number of threads
+    int num_threads = omp_get_max_threads();
+
+#pragma omp parallel
+    {
+        mvector vec, local_best_vec;
+        float mse, local_best_mse = best_mse;
+
+#pragma omp for collapse(2) schedule(static)
+        for (int y = -S * 4; y <= S * 4; y++)
+        {
+            for (int x = -S * 4; x <= S * 4; x++)
+            {
+                vec.y = y * 0.25;
+                vec.x = x * 0.25;
+
+                float ref_row = (float)start_row - vec.y;
+                float ref_col = (float)start_col - vec.x;
+                if ((ref_row < 0) || (ref_col < 0) ||
+                    ((ref_row + block_height) > ref->height) ||
+                    ((ref_col + block_width) > ref->width))
+                    continue; // Translated block not contained within reference frame
+
+                int r, c;
+                int* tp = tgt->buf_ + start_row * tgt->stride + start_col;
+                mse = 0;
+
+                for (r = 0; r < block_height; r++, tp += tgt->stride)
+                {
+                    for (c = 0; c < block_width; c++)
+                    {
+                        float rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
+                        float diff = (tp[c] - rvalue) * (tp[c] - rvalue);
+                        mse += diff;
+                    }
+                }
+                mse = (1.0 / N) * mse;
+
+                if (mse < local_best_mse)
+                {
+                    local_best_mse = mse;
+                    local_best_vec = vec;
+                }
+            }
+        }
+
+#pragma omp critical
+        {
+            if (local_best_mse < global_best_mse)
+            {
+                global_best_mse = local_best_mse;
+                global_best_vec = local_best_vec;
+            }
+        }
+    }
+
+    best_vec = global_best_vec;
+    global_mse += global_best_mse;
+    return best_vec;
+}
 
 void draw_vector(my_image_comp* tgt, int y_start, int x_start, int y_end, int x_end, int n) {
     int dx = abs(x_end - x_start), dy = abs(y_end - y_start);

@@ -163,5 +163,4 @@ my_image_comp** allocate_laplacian(int D, int height, int width, ImageParam* ima
 my_image_comp* ImageRestore(my_image_comp* image_upsample, my_image_comp* image_laplacian, ImageParam* imageParam);
 void Image_copy_no_offset(my_image_comp* input_comps, my_image_comp* output_comps, ImageParam* imageParam);
 void free_laplacian(my_image_comp** laplacian, int D);
-
 #endif

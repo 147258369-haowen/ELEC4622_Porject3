@@ -59,12 +59,12 @@ int main(int argc, char* argv[]) {
             int width = imageParam.width;
             int S = imageParam.S;
             int mid;
-            if (imageParam.B % 2 == 0) { mid = imageParam.B >> 2; }
-            else { mid = (imageParam.B + 1) >> 2; }
+            if (imageParam.B % 2 == 0) { mid = imageParam.B >> 1; }
+            else { mid = (imageParam.B + 1) >> 1; }
             my_image_comp* input_upsample = new  my_image_comp[imageParam.num_comp];
-            Image_copy_no_offset(input_comps, output_comps, &imageParam);
-            Image_copy_no_offset(input_comps, output_comps+1, &imageParam);
-            Image_copy_no_offset(input_comps, output_comps + 2, &imageParam);
+            Image_copy_no_offset(input_comps2, output_comps, &imageParam);
+            Image_copy_no_offset(input_comps2, output_comps+1, &imageParam);
+            Image_copy_no_offset(input_comps2, output_comps + 2, &imageParam);
             //Image_upsample(&input_comps, &input_upsample, &imageParam);
             for (int n = 0; n < imageParam.num_comp; n++) {
                 for (int r = 0; r < height; r += block_height)//height is the image hight
@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
                        
                         mvector vec = find_motion(input_comps +n, input_comps2 + n,//input_comps reference frame
                             r, c, block_width, block_height, S);
-                        motion_comp(input_comps + n, output_comps + n, vec,
+                        motion_comp_float(input_comps + n, output_comps + n, vec,
                             r, c, block_width, block_height);
                         int y_start = r + mid;
                         int x_start = c + mid;
@@ -94,7 +94,8 @@ int main(int argc, char* argv[]) {
                     }
                 }
             }
-            printf("total mse %d\r\n", get_global_mse());
+            //printf("total mse %d\r\n", get_global_mse());
+            Calculate_mse(&input_comps2[0], &output_comps[0]);
             state = OUTPUT_PICTURE;
         } 
         
