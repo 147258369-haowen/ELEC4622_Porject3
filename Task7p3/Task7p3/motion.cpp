@@ -19,8 +19,8 @@ motion_comp(my_image_comp* ref, my_image_comp* tgt, mvector vec,
        for `block_width' columns and `block_height' rows. */
 {
     int r, c;
-    int ref_row = start_row - vec.y;
-    int ref_col = start_col - vec.x;
+    int ref_row = start_row - vec.y_;
+    int ref_col = start_col - vec.x_;
     int* rp = ref->buf_ + ref_row * ref->stride + ref_col;
     int* tp = tgt->buf_ + start_row * tgt->stride + start_col;
     for (r = block_height; r > 0; r--,
@@ -106,13 +106,13 @@ mvector Coarse_find_motion(my_image_comp* ref, my_image_comp* tgt, int start_row
 
 }
 mvector Increment_find_motion(my_image_comp* ref, my_image_comp* tgt, int start_origion_row,
-int star_origion_col,int block_width, int block_height, int S, int vec_y,int vec_x) {
+    int star_origion_col, int block_width, int block_height, int S, int vec_y, int vec_x) {
     float N = (float)block_height * (float)block_width;
     mvector vec, best_vec;//vec就是运动矢量
     float mse, best_mse = 256 * block_width * block_height;
     /*printf("vecpre.x_:%d,vecpre.y_:%d\r\n", vecpre.x_, vecpre.y_);*/
-    for (vec.y_ = (vec_y -3); vec.y_ <= (vec_y + 3); vec.y_ +=1)
-        for (vec.x_ = (vec_x -3); vec.x_ <= (vec_x + 3); vec.x_ +=1)
+    for (vec.y_ = (vec_y - 2); vec.y_ <= (vec_y + 2); vec.y_ += 1)
+        for (vec.x_ = (vec_x - 2); vec.x_ <= (vec_x + 2); vec.x_ += 1)
         {
             int ref_row = start_origion_row - vec.y_;
             int ref_col = star_origion_col - vec.x_;
@@ -140,10 +140,10 @@ int star_origion_col,int block_width, int block_height, int S, int vec_y,int vec
             }
         }
     global_mse += best_mse;
-   // printf("%d\r\n", best_mse);
+    // printf("%d\r\n", best_mse);
     return best_vec;
 }
-mvector Half_pixel_find_motion(my_image_comp* ref, my_image_comp* tgt, 
+mvector Half_pixel_find_motion(my_image_comp* ref, my_image_comp* tgt,
     int start_origion_row, int star_origion_col, int block_width, int block_height, int S, int vec_y, int vec_x)
 
 {
@@ -152,8 +152,8 @@ mvector Half_pixel_find_motion(my_image_comp* ref, my_image_comp* tgt,
     float mse, best_mse = 256 * block_width * block_height;
     //Filter sinc(7,7);
     //printf("vecpre.x_:%d,vecpre.y_:%d\r\n", vecpre.x_, vecpre.y_);
-    for (vec.y = ((float)vec_y - 0.5f); vec.y <= ((float)vec_y +  0.5f); vec.y += 0.5f)
-        for (vec.x = ((float)vec_x - 0.5f); vec.x <= ((float)vec_x +  0.5f); vec.x += 0.5f)
+    for (vec.y = ((float)vec_y - 0.5f); vec.y <= ((float)vec_y + 0.5f); vec.y += 0.5f)
+        for (vec.x = ((float)vec_x - 0.5f); vec.x <= ((float)vec_x + 0.5f); vec.x += 0.5f)
         {
 
             float ref_row = (float)start_origion_row - vec.y;
@@ -288,4 +288,54 @@ motion_copy(my_image_comp* ref, my_image_comp* tgt, mvector vec,
         for (c = 0; c < block_width; c++)
             tp[c] = rp[c];
 
+}
+
+mvector
+find_motion_origion(my_image_comp* ref, my_image_comp* tgt,
+    int start_row, int start_col, int block_width, int block_height, int S)
+    /* This function finds the motion vector which best describes the motion
+       between the `ref' and `tgt' frames, over a specified block in the
+       `tgt' frame.  Specifically, the block in the `tgt' frame commences
+       at the coordinates given by `start_row' and `start_col' and extends
+       over `block_width' columns and `block_height' rows.  The function finds
+       the translational offset (the returned vector) which describes the
+       best matching block of the same size in the `ref' frame, where
+       the "best match" is interpreted as the one which minimizes the sum of
+       absolute differences (SAD) metric. */
+{
+    float N = (float)block_height * (float)block_width;
+    mvector vec, best_vec;//vec就是运动矢量
+    int mse, best_mse = 256 * block_width * block_height;
+    for (vec.y_ = -S; vec.y_ <= S; vec.y_++)
+        for (vec.x = -S; vec.x <= S; vec.x++)
+        {
+            int ref_row = start_row - vec.y_;
+            int ref_col = start_col - vec.x_;
+            if ((ref_row < 0) || (ref_col < 0) ||
+                ((ref_row + block_height) > ref->height) ||
+                ((ref_col + block_width) > ref->width))//如果计算出的块超出了参考帧的边界，则跳过这个运动矢量
+                continue; // Translated block not containe within reference frame
+            int r, c;
+            int* rp = ref->buf_ + ref_row * ref->stride + ref_col;
+            int* tp = tgt->buf_ + start_row * tgt->stride + start_col;
+            for (mse = 0, r = block_height; r > 0; r--,
+                rp += ref->stride, tp += tgt->stride)//换行
+                for (c = 0; c < block_width; c++)
+                {
+                    int diff = (tp[c] - rp[c]) * (tp[c] - rp[c]);
+
+                    mse += diff;
+                }
+            mse = (1.0 / N) * mse;
+            // printf("count:%d\r\n", count);
+            if (mse < best_mse)
+            {
+                best_mse = mse;
+                best_vec = vec;
+
+            }
+        }
+    global_mse += best_mse;
+    //printf("%d\r\n", best_mse);
+    return best_vec;
 }

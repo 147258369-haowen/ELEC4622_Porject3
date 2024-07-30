@@ -66,9 +66,9 @@ int main(int argc, char* argv[]) {
             if (imageParam.B % 2 == 0) { mid = imageParam.B >> 1; }
             else { mid = (imageParam.B + 1) >> 1; }
             my_image_comp* input_upsample = new  my_image_comp[imageParam.num_comp];
-            Image_copy_no_offset(input_comps2, output_comps, &imageParam);
+          /*  Image_copy_no_offset(input_comps2, output_comps, &imageParam);
             Image_copy_no_offset(input_comps2, output_comps+1, &imageParam);
-            Image_copy_no_offset(input_comps2, output_comps + 2, &imageParam);
+            Image_copy_no_offset(input_comps2, output_comps + 2, &imageParam);*/
             //Image_upsample(&input_comps, &input_upsample, &imageParam);
             for (int n = 0; n < imageParam.num_comp; n++) {
                 for (int r = 0; r < height; r += block_height)//height is the image hight
@@ -82,26 +82,28 @@ int main(int argc, char* argv[]) {
                         if ((c + block_width) > width)
                             block_width = width - c;
                         mvector vec = Coarse_find_motion(input_comps +n, input_comps2 + n,//input_comps reference frame
-                            r, c, block_width, block_height, S);
-                        int new_r = r - vec.y_;
-                        int new_c = c - vec.x_;
-                        //printf("vec.x:%f,vec.y:%f\r\n", vec.x, vec.y);
+                        r, c, block_width, block_height, S);
+                        printf("vec.x_:%d,vec.y_:%d\r\n", vec.x_, vec.y_);
                         mvector vec_pixel = Increment_find_motion(input_comps + n, input_comps2 + n,//input_comps reference frame
-                            new_r, new_c,r,c, block_width, block_height, S);
-                        int new_r2 = new_r - vec_pixel.y_;
-                        int new_c2 = new_c - vec_pixel.x_;
-                        printf("vec_pixel.x:%d,vec_pixel.y:%d\r\n", vec_pixel.x_, vec_pixel.y_);
+                        r,c, block_width, block_height, S, vec.y_, vec.x_);
+                        //printf("vec_pixel.x:%d,vec_pixel.y:%d\r\n", vec_pixel.x_, vec_pixel.y_);
                         mvector vec_half_pixel = Half_pixel_find_motion(input_comps + n, input_comps2 + n,//input_comps reference frame
-                            new_r2, new_c2,r,c, block_width, block_height, S);
-                        int new_r3 = new_r2 - vec_half_pixel.y;
-                        int new_c3 = new_c2 - vec_half_pixel.x;
+                        r,c, block_width, block_height, S, vec_pixel.y_, vec_pixel.x_);
 
                         mvector vec_total;
-                        vec_total.x = (float)vec.x_ + (float)vec_pixel.x_ + vec_half_pixel.x;
-                        vec_total.y = (float)vec.y_ + (float)vec_pixel.y_ + vec_half_pixel.y;
-                        //printf("vec_half_pixel.x:%f,vec_half_pixel.y:%f\r\n", vec_half_pixel.x, vec_half_pixel.y);
+                        //vec_total.x = (float)vec.x_ + (float)vec_pixel.x_ + vec_half_pixel.x;
+                        //vec_total.y = (float)vec.y_ + (float)vec_pixel.y_ + vec_half_pixel.y;
+                        vec_total.x = vec_half_pixel.x;
+                        vec_total.y = vec_half_pixel.y;
+                        printf("vec_half_pixel.x:%f,vec_half_pixel.y:%f\r\n", vec_half_pixel.x, vec_half_pixel.y);
                         motion_comp_float(input_comps + n, output_comps + n, vec_total,
                             r, c, block_width, block_height);
+                        if (imageParam.num_comp == 1) {
+                            motion_copy(output_comps + n, output_comps + 1, vec_total,
+                                r, c, block_width, block_height);
+                            motion_copy(output_comps + n, output_comps + 2, vec_total,
+                                r, c, block_width, block_height);
+                        }
                         int y_start = r +mid;
                         int x_start = c +mid;
                         int x_end = x_start - vec_total.x;

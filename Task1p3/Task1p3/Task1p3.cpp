@@ -60,9 +60,9 @@ int main(int argc, char* argv[]) {
             int height = imageParam.height;
             int width = imageParam.width;
             int S = imageParam.S;
-            Image_copy_no_offset(input_comps2, &output_comps[0], &imageParam);
+           /* Image_copy_no_offset(input_comps2, &output_comps[0], &imageParam);
             Image_copy_no_offset(input_comps2, &(output_comps[1]), &imageParam);
-            Image_copy_no_offset(input_comps2, &(output_comps[2]), &imageParam);
+            Image_copy_no_offset(input_comps2, &(output_comps[2]), &imageParam);*/
             for (int n = 0; n < imageParam.num_comp; n++) {
                 for (int r = 0; r < height; r += block_height)//height is the image hight
                 {
@@ -78,7 +78,12 @@ int main(int argc, char* argv[]) {
                             r, c, block_width, block_height, S);
                         motion_comp(input_comps + n, output_comps + n, vec,
                             r, c, block_width, block_height);
-
+                        if (imageParam.num_comp == 1) {
+                            motion_copy(output_comps + n, output_comps + 1, vec,
+                                r, c, block_width, block_height);
+                            motion_copy(output_comps + n, output_comps + 2, vec,
+                                r, c, block_width, block_height);
+                        }
                         int y_start = r + mid;
                         int x_start = c + mid;
                         int x_end = x_start - vec.x;
@@ -90,6 +95,7 @@ int main(int argc, char* argv[]) {
                     }
                 }
             }
+
             Calculate_mse(&input_comps2[0], &output_comps[0]);
             state = OUTPUT_PICTURE;
         } 

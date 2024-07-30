@@ -108,8 +108,8 @@ find_motion(my_image_comp* ref, my_image_comp* tgt,
                 for (c = 0; c < block_width; c++)
                 {
                     //float  rvalue = bilinear_interpolate(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
-                    float rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
-                    float diff = (tp[c] - rvalue)* (tp[c] - rvalue);
+                    float rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + (float)c, ref_row + (float)r, ref->stride);
+                    float diff = ((float)tp[c] - rvalue)* ((float)tp[c] - rvalue);
                    
                     mse += diff;
                 }
@@ -226,4 +226,16 @@ void Calculate_mse(my_image_comp* tgt, my_image_comp* out) {
     }
     float mse = sum / (tgt->height * tgt->width);
     printf("Total MSE : %f\n", mse);
+}
+void
+motion_copy(my_image_comp* ref, my_image_comp* tgt, mvector vec,
+    int start_row, int start_col, int block_width, int block_height) {
+    int r, c;
+    int* rp = ref->buf_ + start_row * ref->stride + start_col;
+    int* tp = tgt->buf_ + start_row * tgt->stride + start_col;
+    for (r = block_height; r > 0; r--,
+        rp += ref->stride, tp += tgt->stride)
+        for (c = 0; c < block_width; c++)
+            tp[c] = rp[c];
+
 }

@@ -249,3 +249,16 @@ void Calculate_mse(my_image_comp* tgt, my_image_comp* out) {
     float mse = sum / (tgt->height * tgt->width);
     printf("Total MSE : %f\n", mse);
 }
+
+void
+motion_copy(my_image_comp* ref, my_image_comp* tgt, mvector vec,
+    int start_row, int start_col, int block_width, int block_height) {
+    int r, c;
+    int* rp = ref->buf_ + start_row * ref->stride + start_col;
+    int* tp = tgt->buf_ + start_row * tgt->stride + start_col;
+    for (r = block_height; r > 0; r--,
+        rp += ref->stride, tp += tgt->stride)
+        for (c = 0; c < block_width; c++)
+            tp[c] = rp[c];
+
+}

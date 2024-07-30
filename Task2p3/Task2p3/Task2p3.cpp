@@ -61,9 +61,9 @@ int main(int argc, char* argv[]) {
             int mid;
             if (imageParam.B % 2 == 0) { mid = imageParam.B >> 1; }
             else { mid = (imageParam.B + 1) >> 1; }
-            Image_copy_no_offset(input_comps2, output_comps, &imageParam);
+           /* Image_copy_no_offset(input_comps2, output_comps, &imageParam);
             Image_copy_no_offset(input_comps2, output_comps+1, &imageParam);
-            Image_copy_no_offset(input_comps2, output_comps + 2, &imageParam);
+            Image_copy_no_offset(input_comps2, output_comps + 2, &imageParam);*/
             for (int n = 0; n < imageParam.num_comp; n++) {
                 for (int r = 0; r < height; r += block_height)//height is the image hight
                 {
@@ -79,6 +79,12 @@ int main(int argc, char* argv[]) {
                             r, c, block_width, block_height, S);
                         motion_comp(input_comps + n, output_comps + n, vec,
                             r, c, block_width, block_height);
+                        if (imageParam.num_comp == 1) {
+                            motion_copy(output_comps + n, output_comps + 1, vec,
+                                r, c, block_width, block_height);
+                            motion_copy(output_comps + n, output_comps + 2, vec,
+                                r, c, block_width, block_height);
+                        }
                       /*  int x_end = c - vec.x;
                         int y_end = r - vec.y;
                         draw_vector(output_comps + n,r,c, y_end, x_end,n);*/

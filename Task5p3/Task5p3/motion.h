@@ -27,4 +27,7 @@ void Calculate_mse(my_image_comp* tgt, my_image_comp* out);
 mvector
 find_motion_paralell(my_image_comp* ref, my_image_comp* tgt,
     int start_row, int start_col, int block_width, int block_height, int S);
+void
+motion_copy(my_image_comp* ref, my_image_comp* tgt, mvector vec,
+    int start_row, int start_col, int block_width, int block_height);
 #endif // MOTION_H

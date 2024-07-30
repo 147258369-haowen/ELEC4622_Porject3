@@ -62,10 +62,9 @@ int main(int argc, char* argv[]) {
             if (imageParam.B % 2 == 0) { mid = imageParam.B >> 1; }
             else { mid = (imageParam.B + 1) >> 1; }
             my_image_comp* input_upsample = new  my_image_comp[imageParam.num_comp];
-            Image_copy_no_offset(input_comps2, output_comps, &imageParam);
-            Image_copy_no_offset(input_comps2, output_comps+1, &imageParam);
-            Image_copy_no_offset(input_comps2, output_comps + 2, &imageParam);
-            //Image_upsample(&input_comps, &input_upsample, &imageParam);
+            //Image_copy_no_offset(input_comps2, output_comps, &imageParam);
+            //Image_copy_no_offset(input_comps2, output_comps+1, &imageParam);
+            //Image_copy_no_offset(input_comps2, output_comps + 2, &imageParam);
             for (int n = 0; n < imageParam.num_comp; n++) {
                 for (int r = 0; r < height; r += block_height)//height is the image hight
                 {
@@ -82,6 +81,12 @@ int main(int argc, char* argv[]) {
                             r, c, block_width, block_height, S);
                         motion_comp_float(input_comps + n, output_comps + n, vec,
                             r, c, block_width, block_height);
+                        if (imageParam.num_comp == 1) {
+                            motion_copy(output_comps + n, output_comps + 1, vec,
+                                r, c, block_width, block_height);
+                            motion_copy(output_comps + n, output_comps + 2, vec,
+                                r, c, block_width, block_height);
+                        }
                         int y_start = r + mid;
                         int x_start = c + mid;
                         int x_end = x_start - vec.x;
