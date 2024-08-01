@@ -55,24 +55,27 @@ public:
             sinc_buffer[i] *= this->hann[i];
         }
     }
-    float sinc_interpolation(int* image, int width, int height, float x, float y, int stride) {
+    float sinc_interpolation(int* image, int width, int height, float x, float y, int stride,int printfflag) {
         int x_int = static_cast<int>(x);
         int y_int = static_cast<int>(y);
         float result = 0.0f;
         float norm_factor = 0.0f;
+        static float prev_y = 0;
+        static int update_x_flag = 0;
         const int window_size = 7;
-        const int half_window_size = (window_size + 1) >> 1;
+        const int half_window_size = (window_size - 1) >> 1;
 
         // Cache sinc values to avoid recomputation
         std::vector<float> sinc_x(2 * half_window_size + 1);
         std::vector<float> sinc_y(2 * half_window_size + 1);
         #pragma omp parallel for
         for (int i = -half_window_size; i <= half_window_size; ++i) {
-           /* sinc_x[i + half_window_size] = sinc(x - (x_int + i))* hann_(x - (x_int + i));
-            sinc_y[i + half_window_size] = sinc(y - (y_int + i))*hann_(y - (y_int + i));*/
-            sinc_x[i + half_window_size] = sinc(x - (x_int + i)) ;
-            sinc_y[i + half_window_size] = sinc(y - (y_int + i)) ;
+            sinc_x[i + half_window_size] = sinc(x - (x_int + i));
+            sinc_y[i + half_window_size] = sinc(y - (y_int + i));
         }
+        //if (printfflag) {
+        //    printf("%f,%f\r\n", x, y);
+        //}
         #pragma omp parallel for collapse(2) reduction(+:result, norm_factor)
         for (int m = -half_window_size; m <= half_window_size; ++m) {
             for (int n = -half_window_size; n <= half_window_size; ++n) {
@@ -89,7 +92,7 @@ public:
         if (norm_factor > 0) {
             result /= norm_factor;
         }
-
+        //prev_y = y;
         return result;
     }
     int sinc_interpolation_(int* image, int width, int height, float x, float y, int stride) {

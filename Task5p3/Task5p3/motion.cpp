@@ -65,7 +65,8 @@ motion_comp_float(my_image_comp* ref, my_image_comp* tgt, mvector vec,
     for (r = 0; r < block_height; r++,
         tp += tgt->stride)
         for (c = 0; c < block_width; c++) {
-            float  rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
+            float  rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride,1);
+            //float rvalue = sincInterpolation2(ref->buf_, ref->width, ref->height, ref_col + (float)c, ref_row + (float)r, ref->stride, 8, 1);
             tp[c] = ((rvalue / 2.0) + 128);
         }
 }
@@ -108,7 +109,8 @@ find_motion(my_image_comp* ref, my_image_comp* tgt,
                 for (c = 0; c < block_width; c++)
                 {
                     //float  rvalue = bilinear_interpolate(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
-                    float rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + (float)c, ref_row + (float)r, ref->stride);
+                    //float rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + (float)c, ref_row + (float)r, ref->stride,1);
+                    float rvalue = sincInterpolation(ref->buf_, ref->width, ref->height, ref_col + (float)c, ref_row + (float)r, ref->stride, 8, 1);
                     float diff = ((float)tp[c] - rvalue)* ((float)tp[c] - rvalue);
                    
                     mse += diff;
@@ -169,7 +171,7 @@ mvector find_motion_paralell(my_image_comp* ref, my_image_comp* tgt,
                 {
                     for (c = 0; c < block_width; c++)
                     {
-                        float rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
+                        float rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride,1);
                         float diff = (tp[c] - rvalue) * (tp[c] - rvalue);
                         mse += diff;
                     }
@@ -238,4 +240,107 @@ motion_copy(my_image_comp* ref, my_image_comp* tgt, mvector vec,
         for (c = 0; c < block_width; c++)
             tp[c] = rp[c];
 
+}
+float sinc_x[2 * 3 + 1];
+float sinc_y[2 * 3 + 1];
+static float prev_y = 0;
+static int update_x_flag = 0;
+static inline double sincInter(double x) {
+    return (fabs(x) < 0.01) ? 1.0 : sin(PI * x) / (PI * x);
+}
+float sincInterpolation(int* image, int width, int height, float x, float y, int stride, int B,int printfflag) {
+    int x_int = static_cast<int>(x);
+    int y_int = static_cast<int>(y);
+    float result = 0.0f;
+    float norm_factor = 0.0f;
+    const int window_size = 7;
+    const int half_window_size = (window_size - 1) >> 1;
+    // Cache sinc values to avoid recomputation
+    if (update_x_flag == 0) {
+        for (int i = -half_window_size; i <= half_window_size; ++i) {
+            sinc_x[i + half_window_size] = sincInter(x - (x_int + i));
+        }
+    }
+    if (fabs(y - prev_y) >= 0.1) {
+        for (int i = -half_window_size; i <= half_window_size; ++i) {
+            sinc_y[i + half_window_size] = sincInter(y - (y_int + i));
+        }
+        update_x_flag++;
+    }
+    if (update_x_flag == B) {
+        update_x_flag = 0;
+    }
+    //if (printfflag) {
+    //    printf("%f,%f\r\n", x, y);
+    //}
+    for (int m = -half_window_size; m <= half_window_size; ++m) {
+        for (int n = -half_window_size; n <= half_window_size; ++n) {
+            int x_move = x_int + n;
+            int y_move = y_int + m;
+            if (x_move >= 0 && x_move < width && y_move >= 0 && y_move < height) {
+                float weight = sinc_x[n + half_window_size] * sinc_y[m + half_window_size];
+                result += image[y_move * stride + x_move] * weight;
+                norm_factor += weight;
+            }
+        }
+    }
+
+    if (norm_factor > 0) {
+        result /= norm_factor;
+    }
+    prev_y = y;
+    return result;
+}
+
+
+
+
+
+
+float sinc_x2[2 * 3 + 1];
+float sinc_y2[2 * 3 + 1];
+static float prev_y2 = 0;
+static int update_x_flag2 = 0;
+float sincInterpolation2(int* image, int width, int height, float x, float y, int stride, int B, int printfflag) {
+    int x_int = static_cast<int>(x);
+    int y_int = static_cast<int>(y);
+    float result = 0.0f;
+    float norm_factor = 0.0f;
+    const int window_size = 7;
+    const int half_window_size = (window_size - 1) >> 1;
+    // Cache sinc values to avoid recomputation
+    if (update_x_flag2 == 0) {
+        for (int i = -half_window_size; i <= half_window_size; ++i) {
+            sinc_x2[i + half_window_size] = sincInter(x - (x_int + i));
+        }
+    }
+    if (fabs(y - prev_y2) >= 0.1) {
+        for (int i = -half_window_size; i <= half_window_size; ++i) {
+            sinc_y2[i + half_window_size] = sincInter(y - (y_int + i));
+        }
+        update_x_flag2++;
+    }
+    if (update_x_flag2 == B) {
+        update_x_flag2 = 0;
+    }
+    //if (printfflag) {
+    //    printf("%f,%f\r\n", x, y);
+    //}
+    for (int m = -half_window_size; m <= half_window_size; ++m) {
+        for (int n = -half_window_size; n <= half_window_size; ++n) {
+            int x_move = x_int + n;
+            int y_move = y_int + m;
+            if (x_move >= 0 && x_move < width && y_move >= 0 && y_move < height) {
+                float weight = sinc_x2[n + half_window_size] * sinc_y2[m + half_window_size];
+                result += image[y_move * stride + x_move] * weight;
+                norm_factor += weight;
+            }
+        }
+    }
+
+    if (norm_factor > 0) {
+        result /= norm_factor;
+    }
+    prev_y2 = y;
+    return result;
 }

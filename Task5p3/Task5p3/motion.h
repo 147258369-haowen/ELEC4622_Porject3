@@ -30,4 +30,7 @@ find_motion_paralell(my_image_comp* ref, my_image_comp* tgt,
 void
 motion_copy(my_image_comp* ref, my_image_comp* tgt, mvector vec,
     int start_row, int start_col, int block_width, int block_height);
+float sincInterpolation(int* image, int width, int height, float x, 
+    float y, int stride, int B, int printfflag);
+float sincInterpolation2(int* image, int width, int height, float x, float y, int stride, int B, int printfflag);
 #endif // MOTION_H
