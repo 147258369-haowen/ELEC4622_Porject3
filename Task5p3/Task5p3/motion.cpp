@@ -65,9 +65,10 @@ motion_comp_float(my_image_comp* ref, my_image_comp* tgt, mvector vec,
     for (r = 0; r < block_height; r++,
         tp += tgt->stride)
         for (c = 0; c < block_width; c++) {
-            float  rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride,1);
-            //float rvalue = sincInterpolation2(ref->buf_, ref->width, ref->height, ref_col + (float)c, ref_row + (float)r, ref->stride, 8, 1);
-            tp[c] = ((rvalue / 2.0) + 128);
+            //float  rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride,1);
+            float rvalue = sincInterpolation2(ref->buf_, ref->width, ref->height, ref_col + (float)c, ref_row + (float)r, ref->stride, block_width, 1);
+            //printf("x:%f,y:%f\r\n", ref_col + c, ref_row + r);
+            tp[c] = (((int)rvalue >> 1) + 128);
         }
 }
 
@@ -110,7 +111,7 @@ find_motion(my_image_comp* ref, my_image_comp* tgt,
                 {
                     //float  rvalue = bilinear_interpolate(ref->buf_, ref->width, ref->height, ref_col + c, ref_row + r, ref->stride);
                     //float rvalue = sinc.sinc_interpolation(ref->buf_, ref->width, ref->height, ref_col + (float)c, ref_row + (float)r, ref->stride,1);
-                    float rvalue = sincInterpolation(ref->buf_, ref->width, ref->height, ref_col + (float)c, ref_row + (float)r, ref->stride, 8, 1);
+                    float rvalue = sincInterpolation(ref->buf_, ref->width, ref->height, ref_col + (float)c, ref_row + (float)r, ref->stride, block_height, 1);
                     float diff = ((float)tp[c] - rvalue)* ((float)tp[c] - rvalue);
                    
                     mse += diff;
@@ -245,25 +246,37 @@ float sinc_x[2 * 3 + 1];
 float sinc_y[2 * 3 + 1];
 static float prev_y = 0;
 static int update_x_flag = 0;
+static double hann[7];
 static inline double sincInter(double x) {
     return (fabs(x) < 0.01) ? 1.0 : sin(PI * x) / (PI * x);
+}
+void hannwindow_(double* hann) {
+    for (int i = 0; i < (3 * 2 + 1); i++) {
+        hann[i] = 0.5 * (1 - cos(2 * PI * i / (2 * 3)));
+    }
 }
 float sincInterpolation(int* image, int width, int height, float x, float y, int stride, int B,int printfflag) {
     int x_int = static_cast<int>(x);
     int y_int = static_cast<int>(y);
+    
     float result = 0.0f;
     float norm_factor = 0.0f;
     const int window_size = 7;
     const int half_window_size = (window_size - 1) >> 1;
     // Cache sinc values to avoid recomputation
+    static int hann_flag = 0;
+    if (hann_flag == 0) {
+        hannwindow_(hann);
+        hann_flag = 1;
+    }
     if (update_x_flag == 0) {
         for (int i = -half_window_size; i <= half_window_size; ++i) {
-            sinc_x[i + half_window_size] = sincInter(x - (x_int + i));
+            sinc_x[i + half_window_size] = sincInter(x - (x_int + i))* hann[i+ half_window_size];
         }
     }
     if (fabs(y - prev_y) >= 0.1) {
         for (int i = -half_window_size; i <= half_window_size; ++i) {
-            sinc_y[i + half_window_size] = sincInter(y - (y_int + i));
+            sinc_y[i + half_window_size] = sincInter(y - (y_int + i)) * hann[i + half_window_size];
         }
         update_x_flag++;
     }
@@ -293,10 +306,6 @@ float sincInterpolation(int* image, int width, int height, float x, float y, int
 }
 
 
-
-
-
-
 float sinc_x2[2 * 3 + 1];
 float sinc_y2[2 * 3 + 1];
 static float prev_y2 = 0;
@@ -309,14 +318,14 @@ float sincInterpolation2(int* image, int width, int height, float x, float y, in
     const int window_size = 7;
     const int half_window_size = (window_size - 1) >> 1;
     // Cache sinc values to avoid recomputation
-    if (update_x_flag2 == 0) {
+   // if (update_x_flag2 == 0) {
         for (int i = -half_window_size; i <= half_window_size; ++i) {
-            sinc_x2[i + half_window_size] = sincInter(x - (x_int + i));
+            sinc_x2[i + half_window_size] = sincInter(x - (x_int + i)) * hann[i + half_window_size];
         }
-    }
-    if (fabs(y - prev_y2) >= 0.1) {
+    //}
+    if (fabs(y - prev_y2) > 0.01) {
         for (int i = -half_window_size; i <= half_window_size; ++i) {
-            sinc_y2[i + half_window_size] = sincInter(y - (y_int + i));
+            sinc_y2[i + half_window_size] = sincInter(y - (y_int + i)) * hann[i + half_window_size];
         }
         update_x_flag2++;
     }
@@ -343,4 +352,95 @@ float sincInterpolation2(int* image, int width, int height, float x, float y, in
     }
     prev_y2 = y;
     return result;
+}
+void draw_vector_(my_image_comp* img, int start_row, int start_col, int vec_y, int vec_x, int color_plane) {
+    int abs_v_2 = abs(vec_y);
+    int abs_v_1 = abs(vec_x);
+    int c1 = start_col;
+    int c2 = start_row;
+
+    if (abs_v_2 > abs_v_1) {
+        if (vec_x != 0) {
+            float k = (float)vec_y / vec_x;
+            if (vec_x >= 0) {
+                for (int n1 = c1; n1 <= (c1 + vec_x); n1++) {
+                    int n2 = c2 + (n1 - c1) * k;
+                    if (n1 >= 0 && n1 < img->width && n2 >= 0 && n2 < img->height) {
+                        int* pixel = img->buf_ + n2 * img->stride + n1;
+                        *pixel = 0;
+                    }
+                }
+            }
+            else {
+                for (int n1 = (c1 + vec_x); n1 <= c1; n1++) {
+                    int n2 = c2 + (n1 - c1) * k;
+                    if (n1 >= 0 && n1 < img->width && n2 >= 0 && n2 < img->height) {
+                        int* pixel = img->buf_ + n2 * img->stride + n1;
+                        *pixel = 0;
+                    }
+                }
+            }
+        }
+        else {
+            // vec_x == 0, 只绘制垂直线
+            if (vec_y >= 0) {
+                for (int n2 = c2; n2 <= (c2 + vec_y); n2++) {
+                    if (c1 >= 0 && c1 < img->width && n2 >= 0 && n2 < img->height) {
+                        int* pixel = img->buf_ + n2 * img->stride + c1;
+                        *pixel = 0;
+                    }
+                }
+            }
+            else {
+                for (int n2 = (c2 + vec_y); n2 <= c2; n2++) {
+                    if (c1 >= 0 && c1 < img->width && n2 >= 0 && n2 < img->height) {
+                        int* pixel = img->buf_ + n2 * img->stride + c1;
+                        *pixel = 0;
+                    }
+                }
+            }
+        }
+    }
+    else {
+        if (vec_y != 0) {
+            float k = (float)vec_x / vec_y;
+            if (vec_y >= 0) {
+                for (int n2 = c2; n2 <= (c2 + vec_y); n2++) {
+                    int n1 = c1 + (n2 - c2) * k;
+                    if (n1 >= 0 && n1 < img->width && n2 >= 0 && n2 < img->height) {
+                        int* pixel = img->buf_ + n2 * img->stride + n1;
+                        *pixel = 0;
+                    }
+                }
+            }
+            else {
+                for (int n2 = (c2 + vec_y); n2 <= c2; n2++) {
+                    int n1 = c1 + (n2 - c2) * k;
+                    if (n1 >= 0 && n1 < img->width && n2 >= 0 && n2 < img->height) {
+                        int* pixel = img->buf_ + n2 * img->stride + n1;
+                        *pixel = 0;
+                    }
+                }
+            }
+        }
+        else {
+            // vec_y == 0, 只绘制水平线
+            if (vec_x >= 0) {
+                for (int n1 = c1; n1 <= (c1 + vec_x); n1++) {
+                    if (n1 >= 0 && n1 < img->width && c2 >= 0 && c2 < img->height) {
+                        int* pixel = img->buf_ + c2 * img->stride + n1;
+                        *pixel = 0;
+                    }
+                }
+            }
+            else {
+                for (int n1 = (c1 + vec_x); n1 <= c1; n1++) {
+                    if (n1 >= 0 && n1 < img->width && c2 >= 0 && c2 < img->height) {
+                        int* pixel = img->buf_ + c2 * img->stride + n1;
+                        *pixel = 0;
+                    }
+                }
+            }
+        }
+    }
 }

@@ -33,4 +33,5 @@ motion_copy(my_image_comp* ref, my_image_comp* tgt, mvector vec,
 float sincInterpolation(int* image, int width, int height, float x, 
     float y, int stride, int B, int printfflag);
 float sincInterpolation2(int* image, int width, int height, float x, float y, int stride, int B, int printfflag);
+void draw_vector_(my_image_comp* img, int start_row, int start_col, int vec_y, int vec_x, int color_plane);
 #endif // MOTION_H

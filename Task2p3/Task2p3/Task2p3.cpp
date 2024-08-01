@@ -93,8 +93,8 @@ int main(int argc, char* argv[]) {
                         int x_end = x_start - vec.x;
                         int y_end = y_start - vec.y;
 
-                        //draw_vector_(&output_comps[1], y_start, x_start, vec.y, vec.x, n);
-                        draw_vector(&output_comps[1], y_start, x_start, y_end, x_end, n);
+                        draw_vector_(&output_comps[1], y_start, x_start, vec.y, vec.x, n);
+                        //draw_vector(&output_comps[1], y_start, x_start, y_end, x_end, n);
                     }
                 }
             }

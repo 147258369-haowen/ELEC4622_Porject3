@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
                             block_width = width - c;
                         mvector vec = Coarse_find_motion(input_comps +n, input_comps2 + n,//input_comps reference frame
                         r, c, block_width, block_height, S);
-                        printf("vec.x_:%d,vec.y_:%d\r\n", vec.x_, vec.y_);
+                        //printf("vec.x_:%d,vec.y_:%d\r\n", vec.x_, vec.y_);
                         mvector vec_pixel = Increment_find_motion(input_comps + n, input_comps2 + n,//input_comps reference frame
                         r,c, block_width, block_height, S, vec.y_, vec.x_);
                         //printf("vec_pixel.x:%d,vec_pixel.y:%d\r\n", vec_pixel.x_, vec_pixel.y_);
@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
                         //vec_total.y = (float)vec.y_ + (float)vec_pixel.y_ + vec_half_pixel.y;
                         vec_total.x = vec_half_pixel.x;
                         vec_total.y = vec_half_pixel.y;
-                        printf("vec_half_pixel.x:%f,vec_half_pixel.y:%f\r\n", vec_half_pixel.x, vec_half_pixel.y);
+                        //printf("vec_half_pixel.x:%f,vec_half_pixel.y:%f\r\n", vec_half_pixel.x, vec_half_pixel.y);
                         motion_comp_float(input_comps + n, output_comps + n, vec_total,
                             r, c, block_width, block_height);
                         if (imageParam.num_comp == 1) {
@@ -110,9 +110,9 @@ int main(int argc, char* argv[]) {
                         int y_end = y_start - vec_total.y;
                         /*int x_end = c - (vec.x + vec_pixel.x + vec_half_pixel.x);
                         int y_end = r - (vec.y + vec_pixel.y + vec_half_pixel.y);*/
-                        //draw_vector_(&output_comps[1], y_start, x_start, vec.y, vec.x, n);
-                        draw_vector(&output_comps[1], y_start, x_start, y_end, x_end, n);
-                        //draw_vectors2(&output_comps[1], vec, y_start, x_start, nominal_block_width, nominal_block_width);
+                        draw_vector_(&output_comps[1], y_start, x_start, vec_total.y, vec_total.x, n);
+                        //draw_vector(&output_comps[1], y_start, x_start, y_end, x_end, n);
+                        
                     }
                 }
             }

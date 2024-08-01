@@ -64,11 +64,7 @@ int main(int argc, char* argv[]) {
             int mid;
             if (imageParam.B % 2 == 0) { mid = imageParam.B >> 1; }
             else { mid = (imageParam.B + 1) >> 1; }
-            my_image_comp* input_upsample = new  my_image_comp[imageParam.num_comp];
-            //Image_copy_no_offset(input_comps2, output_comps, &imageParam);
-            //Image_copy_no_offset(input_comps2, output_comps+1, &imageParam);
-            //Image_copy_no_offset(input_comps2, output_comps + 2, &imageParam);
-            //Image_upsample(&input_comps, &input_upsample, &imageParam);
+
             for (int n = 0; n < imageParam.num_comp; n++) {
                 for (int r = 0; r < height; r += block_height)//height is the image hight
                 {
@@ -95,9 +91,9 @@ int main(int argc, char* argv[]) {
                         int x_end = x_start - vec.x;
                         int y_end = y_start - vec.y;
 
-                        //draw_vector_(&output_comps[1], y_start, x_start, vec.y, vec.x, n);
-                        draw_vector(&output_comps[1], y_start, x_start, y_end, x_end, n);
-                        //draw_vectors2(&output_comps[1], vec, y_start, x_start, nominal_block_width, nominal_block_width);
+                        draw_vector_(&output_comps[1], y_start, x_start, vec.y, vec.x, n);
+                        //draw_vector(&output_comps[1], y_start, x_start, y_end, x_end, n);
+                       
 
                     }
                 }

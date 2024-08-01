@@ -27,4 +27,5 @@ void Calculate_mse(my_image_comp* tgt, my_image_comp* out);
 void
 motion_copy(my_image_comp* ref, my_image_comp* tgt, mvector vec,
     int start_row, int start_col, int block_width, int block_height);
+void draw_vector_(my_image_comp* img, int start_row, int start_col, int vec_y, int vec_x, int color_plane);
 #endif // MOTION_H

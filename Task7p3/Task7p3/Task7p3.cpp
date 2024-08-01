@@ -210,8 +210,8 @@ int main(int argc, char* argv[]) {
                         int y_end = y_start - vec.y;
                         /*int x_end = c - (vec.x + vec_pixel.x + vec_half_pixel.x);
                         int y_end = r - (vec.y + vec_pixel.y + vec_half_pixel.y);*/
-                        //draw_vector_(&output_comps[1], y_start, x_start, vec.y, vec.x, n);
-                        draw_vector(&output_comps[1], y_start, x_start, y_end, x_end, n);
+                        draw_vector_(&output_comps[1], y_start, x_start, vec.y, vec.x, n);
+                        //draw_vector(&output_comps[1], y_start, x_start, y_end, x_end, n);
                         count_++;
                     }
                 }
@@ -280,8 +280,8 @@ int main(int argc, char* argv[]) {
                         int y_end = y_start - vec_total.y;
                         /*int x_end = c - (vec.x + vec_pixel.x + vec_half_pixel.x);
                         int y_end = r - (vec.y + vec_pixel.y + vec_half_pixel.y);*/
-                        //draw_vector_(&output_comps[1], y_start, x_start, vec.y, vec.x, n);
-                        draw_vector(&output_comps[1], y_start, x_start, y_end, x_end, n);
+                        draw_vector_(&output_comps[1], y_start, x_start, vec.y, vec.x, n);
+                        //draw_vector(&output_comps[1], y_start, x_start, y_end, x_end, n);
                         //draw_vectors2(&output_comps[1], vec, y_start, x_start, nominal_block_width, nominal_block_width);
                     }
                 }

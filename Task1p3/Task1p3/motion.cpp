@@ -152,7 +152,7 @@ void draw_vector_(my_image_comp* img, int start_row, int start_col, int vec_y, i
 
     if (abs_v_2 > abs_v_1) {
         if (vec_x != 0) {
-            float k = (float)vec_y / vec_x;
+            float k = (float)vec_y / (float)vec_x;
             if (vec_x >= 0) {
                 for (int n1 = c1; n1 <= (c1 + vec_x); n1++) {
                     int n2 = c2 + (n1 - c1) * k;
@@ -187,14 +187,14 @@ void draw_vector_(my_image_comp* img, int start_row, int start_col, int vec_y, i
                     if (c1 >= 0 && c1 < img->width && n2 >= 0 && n2 < img->height) {
                         int* pixel = img->buf_ + n2 * img->stride + c1;
                         *pixel = 0;
-                    }
+                  }
                 }
             }
         }
     }
     else {
         if (vec_y != 0) {
-            float k = (float)vec_x / vec_y;
+            float k = (float)vec_x / (float)vec_y;
             if (vec_y >= 0) {
                 for (int n2 = c2; n2 <= (c2 + vec_y); n2++) {
                     int n1 = c1 + (n2 - c2) * k;

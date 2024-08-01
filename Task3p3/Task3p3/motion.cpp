@@ -166,3 +166,94 @@ motion_copy(my_image_comp* ref, my_image_comp* tgt, mvector vec,
             tp[c] = rp[c];
 
 }
+void draw_vector_(my_image_comp* img, int start_row, int start_col, int vec_y, int vec_x, int color_plane) {
+    int abs_v_2 = abs(vec_y);
+    int abs_v_1 = abs(vec_x);
+    int c1 = start_col;
+    int c2 = start_row;
+
+    if (abs_v_2 > abs_v_1) {
+        if (vec_x != 0) {
+            float k = (float)vec_y / vec_x;
+            if (vec_x >= 0) {
+                for (int n1 = c1; n1 <= (c1 + vec_x); n1++) {
+                    int n2 = c2 + (n1 - c1) * k;
+                    if (n1 >= 0 && n1 < img->width && n2 >= 0 && n2 < img->height) {
+                        int* pixel = img->buf_ + n2 * img->stride + n1;
+                        *pixel = 0;
+                    }
+                }
+            }
+            else {
+                for (int n1 = (c1 + vec_x); n1 <= c1; n1++) {
+                    int n2 = c2 + (n1 - c1) * k;
+                    if (n1 >= 0 && n1 < img->width && n2 >= 0 && n2 < img->height) {
+                        int* pixel = img->buf_ + n2 * img->stride + n1;
+                        *pixel = 0;
+                    }
+                }
+            }
+        }
+        else {
+            // vec_x == 0, 只绘制垂直线
+            if (vec_y >= 0) {
+                for (int n2 = c2; n2 <= (c2 + vec_y); n2++) {
+                    if (c1 >= 0 && c1 < img->width && n2 >= 0 && n2 < img->height) {
+                        int* pixel = img->buf_ + n2 * img->stride + c1;
+                        *pixel = 0;
+                    }
+                }
+            }
+            else {
+                for (int n2 = (c2 + vec_y); n2 <= c2; n2++) {
+                    if (c1 >= 0 && c1 < img->width && n2 >= 0 && n2 < img->height) {
+                        int* pixel = img->buf_ + n2 * img->stride + c1;
+                        *pixel = 0;
+                    }
+                }
+            }
+        }
+    }
+    else {
+        if (vec_y != 0) {
+            float k = (float)vec_x / vec_y;
+            if (vec_y >= 0) {
+                for (int n2 = c2; n2 <= (c2 + vec_y); n2++) {
+                    int n1 = c1 + (n2 - c2) * k;
+                    if (n1 >= 0 && n1 < img->width && n2 >= 0 && n2 < img->height) {
+                        int* pixel = img->buf_ + n2 * img->stride + n1;
+                        *pixel = 0;
+                    }
+                }
+            }
+            else {
+                for (int n2 = (c2 + vec_y); n2 <= c2; n2++) {
+                    int n1 = c1 + (n2 - c2) * k;
+                    if (n1 >= 0 && n1 < img->width && n2 >= 0 && n2 < img->height) {
+                        int* pixel = img->buf_ + n2 * img->stride + n1;
+                        *pixel = 0;
+                    }
+                }
+            }
+        }
+        else {
+            // vec_y == 0, 只绘制水平线
+            if (vec_x >= 0) {
+                for (int n1 = c1; n1 <= (c1 + vec_x); n1++) {
+                    if (n1 >= 0 && n1 < img->width && c2 >= 0 && c2 < img->height) {
+                        int* pixel = img->buf_ + c2 * img->stride + n1;
+                        *pixel = 0;
+                    }
+                }
+            }
+            else {
+                for (int n1 = (c1 + vec_x); n1 <= c1; n1++) {
+                    if (n1 >= 0 && n1 < img->width && c2 >= 0 && c2 < img->height) {
+                        int* pixel = img->buf_ + c2 * img->stride + n1;
+                        *pixel = 0;
+                    }
+                }
+            }
+        }
+    }
+}
